@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "441418541655",
+    "project_id": "pruebaimagenes-c0615",
+    "storage_bucket": "pruebaimagenes-c0615.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:441418541655:android:a085fc1de627de62d95112",
+        "android_client_info": {
+          "package_name": "com.kepollo.mx.lectorimagen"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "441418541655-ruobhrred2rgd9nb4vhh4lj06c8ma5kf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBBKTIon35Dpi6TRE8--0uqhu6M5u5MrDc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "441418541655-ruobhrred2rgd9nb4vhh4lj06c8ma5kf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
