@@ -63,10 +63,20 @@ import java.util.PriorityQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Pattern;
 
+import hu.akarnokd.rxjava3.retrofit.RxJava3CallAdapterFactory;
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.Observer;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
+import okhttp3.OkHttpClient;
+import okhttp3.logging.HttpLoggingInterceptor;
+import retrofit2.Retrofit;
+
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "INFORMACION";
     private ImageView mImageView;
-    private Button mTextButton,camera_pick_galery,desplegar_detalle;
+    private Button mTextButton, camera_pick_galery, desplegar_detalle;
     private Bitmap mSelectedImage;
     // Max width (portrait mode)
     private Integer mImageMaxWidth;
@@ -169,7 +179,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void runTextRecognition() {
-
         //mSelectedImage = getBitmapFromAsset(this, photoURI.toString());
         Log.e(TAG, "SE EMPEZARA A PROCESAR LA INFOMACION");
         InputImage image = InputImage.fromBitmap(mSelectedImage, 0);
@@ -200,7 +209,7 @@ public class MainActivity extends AppCompatActivity {
         Log.e(TAG, "processTextRecognitionResult");
         List<Text.TextBlock> blocks = texts.getTextBlocks();
 
-        Log.e(TAG, "BLOCK SIZE: "+blocks.size());
+        Log.e(TAG, "BLOCK SIZE: " + blocks.size());
         if (blocks.size() == 0) {
             Log.e(TAG, "No text found");
             showToast("No text found");
@@ -210,7 +219,6 @@ public class MainActivity extends AppCompatActivity {
         convertTextResultAtTicket(blocks);
 
     }
-
 
 
     private void convertTextResultAtTicket(List<Text.TextBlock> blocks) {
@@ -224,94 +232,234 @@ public class MainActivity extends AppCompatActivity {
         searchTransaccion.add("Transaccion");
         searchTransaccion.add("Referencia");
 
+        int numBlockImporte = -1;
         for (int i = 0; i < blocks.size(); i++) {
-            Log.e(TAG, "BLOQUE: "+i);
+            //Log.e(TAG, "BLOQUE: " + i);
             List<Text.Line> lines = blocks.get(i).getLines();
             for (int j = 0; j < lines.size(); j++) {
                 //Log.e(TAG, "LINEA: "+lines.get(j).getElements());
                 List<Text.Element> elements = lines.get(j).getElements();
-                for (int k = 0; k < elements.size(); k++) {
-                    Log.e(TAG, "DATA: "+elements.get(k).getText());
-                    if(elements.get(k).getText().contains("FOLIO")) {
-
-                    }
-                }
-            }
-        }
-
-        /*for (int i = 0; i < blocks.size(); i++) {
-            Log.e(TAG, "BLOQUE: "+i);
-            List<Text.Line> lines = blocks.get(i).getLines();
-            for (int j = 0; j < lines.size(); j++) {
-                //Log.e(TAG, "LINEA: "+lines.get(j).getElements());
-                List<Text.Element> elements = lines.get(j).getElements();
-
-                String infoconsult = getAllLine(elements);
+                String infoconsult = getAllLine(elements).toUpperCase();
                 //Log.e(TAG, "elemento: "+infoconsult);
-                if((i < 2) && j == 0) {
+                if (infoconsult.contains("CUATRO CAMINOS") || infoconsult.contains("CUATROCAMINOS") || infoconsult.contains("CAMINOS")) {
+                    ticket.setRfc("4caminos");
+                    ticketCuatroCaminos(blocks);
+                }
+                if ((i < 2) && j == 0) {
                     //Se obtiene el proveedor
-                    if(infoconsult.contains("S.A") || infoconsult.contains("C.V")) {
+                    if (infoconsult.contains("S.A") || infoconsult.contains("C.V")) {
                         ticket.setProvedor(infoconsult);
                     }
-                    if(infoconsult.contains("KOPLA") || infoconsult.contains("kopla") ) {
+                    if (infoconsult.contains("KOPLA") || infoconsult.contains("kopla")) {
                         ticket.setRfc("RFCKOPLA");
+                        ticketKopla(blocks);
+                        break;
+                    }
+
+                    if (infoconsult.contains("SUPER SERVICIOS DE COMBUSTIBLE HUACUZ") || infoconsult.contains("SUPER SERVICIOS")
+                        || infoconsult.contains("COMBUSTIBLE HUACUZ") || infoconsult.contains("HUACUZ") || infoconsult.contains("GASOLINERA DE TACAMBARO")
+                            ||  infoconsult.contains("TACAMBARO")) {
+                        ticket.setRfc("RFCSUPERSERVICIOS");
+                        ticketSuperServicios(blocks);
+                        break;
                     }
                 }
-                if(infoconsult.contains("RFC") || infoconsult.contains("R.F.C")) {
-                    if(ticket.getRfc().equals("0")){
+                if (infoconsult.contains("RFC") || infoconsult.contains("R.F.C")) {
+                    if (ticket.getRfc().equals("0")) {
                         ticket.setRfc(getElementAfterElement(elements, searchrfc));
                     }
                 }
-                if( infoconsult.contains("TRANSACCION NO.") || infoconsult.contains("TRANSACCION") || infoconsult.contains("Transaccion") || infoconsult.contains("Referencia")) {
+                if (infoconsult.contains("TRANSACCION NO.") || infoconsult.contains("TRANSACCION") || infoconsult.contains("Transaccion") || infoconsult.contains("Referencia")) {
                     ticket.setRfc(getElementAfterElement(elements, searchTransaccion));
                 }
 
-                for (int k = 0; k < elements.size(); k++) {
-                    Log.e(TAG, "DATA: "+elements.get(k).getText());
-                    if(matches_date(elements.get(k).getText())) {
+                /*for (int k = 0; k < elements.size(); k++) {
+                    Log.e(TAG, "DATA: " + elements.get(k).getText());
+                    *//*if (matches_date(elements.get(k).getText())) {
                         ticket.setFecha(elements.get(k).getText());
                     }
 
-                    if(matches_hour(elements.get(k).getText())) {
+                    if (matches_hour(elements.get(k).getText())) {
                         ticket.setHora(elements.get(k).getText());
                     }
-                   *//* if(banderaPunitKopla){
-                        ticket.setPunit(Float.parseFloat(elements.get(k).getText()));
-                        ticket.setImporte(Float.parseFloat(elements.get(k+1).getText()));
-                        banderaPunitKopla = false;
-                    }*//*
+
                     if(elements.get(k).getText().contains("MAGNA") || elements.get(k).getText().contains("PREMIUM") || elements.get(k).getText().contains("DIESEL")) {
                         ticket.setCombustible(elements.get(k).getText());
                         ticket.setLitros(elements.get(k-1).getText());
                         ticket.setTypeCombustible(check_type_comb(elements.get(k).getText()));
+                        numBlockImporte = i +1;
+                    }
+
+                    if(numBlockImporte == i) {
+                        Log.e(TAG, "DATAaaaa: " + elements.get(k).getText());
+                        ticket.setPunit(elements.get(k).getText());
+                        ticket.setImporte(elements.get(k+1).getText());
+                        numBlockImporte = 0;
+                    }*//*
+                }*/
+            }
+        }
+    }
+
+    private void ticketSuperServicios(List<Text.TextBlock> blocks) {
+        Log.e(TAG, "ES UN TICKET DE SUPERFICIE");
+        int numBlockImporte = -1;
+        for (int i = 0; i < blocks.size(); i++) {
+            Log.e(TAG, "BLOQUE: " + i);
+            List<Text.Line> lines = blocks.get(i).getLines();
+            for (int j = 0; j < lines.size(); j++) {
+                List<Text.Element> elements = lines.get(j).getElements();
+                String infoconsult = getAllLine(elements);
+                //Log.e(TAG, "elemento: "+infoconsult);
+                if ((i < 2) && j == 0) {
+                    //Se obtiene el proveedor
+                    if (infoconsult.contains("S.A") || infoconsult.contains("C.V")) {
+                        ticket.setProvedor(infoconsult);
+                    }
+                    if (infoconsult.contains("R.F.C.") || infoconsult.contains("R.F.C")) {
+                        //ticket.setRfc("RFCKOPLA");
+                    }
+                }
+
+                for (int k = 0; k < elements.size(); k++) {
+                    Log.e(TAG, "DATA: " + elements.get(k).getText());
+                    if (matches_date(elements.get(k).getText())) {
+                        ticket.setFecha(elements.get(k).getText());
+                    }
+
+                    if (matches_hour(elements.get(k).getText())) {
+                        ticket.setHora(elements.get(k).getText());
+                    }
+                    if (elements.get(k).getText().contains("Transaccion") || elements.get(k).getText().contains("Transaccion:") || elements.get(k).getText().contains("Trainsaccion:") || elements.get(k).getText().contains("Trainsaccion:") ) {
+                        ticket.setNoTransaccion(elements.get(k+1).getText());
+                    }
+                    if (elements.get(k).getText().contains("R.F.C.") || elements.get(k).getText().contains("R.F.C") ) {
+                        //ticket.setRfc(elements.get(k+1).getText());
+                    }
+
+                    if(elements.get(k).getText().toUpperCase().contains("REGULAR") || elements.get(k).getText().toUpperCase().contains("MAGNA") || elements.get(k).getText().toUpperCase().contains("DIESEL") ) {
+                        ticket.setCombustible(elements.get(k).getText());
+                        numBlockImporte = i +1;
+                    }
+
+                    if(numBlockImporte == i) {
+                        Log.e(TAG, "DATAaaaa: " + elements.get(k).getText());
+                        ticket.setLitros(elements.get(k).getText().replace("Lt", ""));
+                        ticket.setPunit(elements.get(k+1).getText().replace("$", "").replace(",", ""));
+                        if(elements.size() > (k + 3)) {
+                            ticket.setImporte(elements.get(k+3).getText().replace("$", ""));
+                        }else {
+                            ticket.setImporte(elements.get(k+2).getText().replace("$", ""));
+                        }
+                        numBlockImporte = 0;
                     }
                 }
             }
-        }*/
-        Log.e(TAG, "tickert: "+ticket.toString());
-
+        }
+        Log.e(TAG, "tickert: " + ticket.toString());
     }
 
+    private void ticketCuatroCaminos(List<Text.TextBlock> blocks) {
+        Log.e(TAG, "ES UN TICKET DE 4 CAMINOS");
+        for (int i = 0; i < blocks.size(); i++) {
+            Log.e(TAG, "BLOQUE: " + i);
+            List<Text.Line> lines = blocks.get(i).getLines();
+            for (int j = 0; j < lines.size(); j++) {
+                List<Text.Element> elements = lines.get(j).getElements();
+                String infoconsult = getAllLine(elements);
+                //Log.e(TAG, "elemento: "+infoconsult);
+                if ((i < 2) && j == 0) {
+                    //Se obtiene el proveedor
+                    if (infoconsult.contains("S.A") || infoconsult.contains("C.V")) {
+                        ticket.setProvedor(infoconsult);
+                    }
+                    if (infoconsult.contains("R.F.C.") || infoconsult.contains("R.F.C")) {
+                        //ticket.setRfc("RFCKOPLA");
+                    }
+                }
 
-    private void consultImporteLitros(List<Text.Element> elements, List<Text.Element> elements1) {
-        Log.e(TAG, "ELEMENTO ANT: "+elements.size() +" Elementos: "+elements1.size());
-        Log.e(TAG, "ELEMENTO ANT: "+elements.get(0).getText() +" Elementos: "+elements1.get(0).getText());
-        /*if (elements.get(0).equals("ID")) {
-            Log.e(TAG, "ID: "+elements1.get(0).getText());
+                for (int k = 0; k < elements.size(); k++) {
+                    Log.e(TAG, "DATA: " + elements.get(k).getText());
+                    if (matches_date(elements.get(k).getText())) {
+                        ticket.setFecha(elements.get(k).getText());
+                    }
+
+                    if (matches_hour(elements.get(k).getText())) {
+                        ticket.setHora(elements.get(k).getText());
+                    }
+
+                    if (elements.get(k).getText().contains("R.F.C.") || elements.get(k).getText().contains("R.F.C") ) {
+                        ticket.setRfc(elements.get(k+1).getText());
+                    }
+
+                    if(elements.get(k).getText().toUpperCase().contains("MAGNA") || elements.get(k).getText().toUpperCase().contains("PREMIUM") || elements.get(k).getText().toUpperCase().contains("DIESEL")) {
+                        ticket.setCombustible(elements.get(k).getText());
+                        ticket.setLitros(elements.get(k+1).getText());
+                        ticket.setPunit(elements.get(k+2).getText());
+                        ticket.setImporte(elements.get(k+3).getText());
+                        ticket.setTypeCombustible(check_type_comb(elements.get(k).getText()));
+                        //numBlockImporte = i +1;
+                    }
+
+                    /*if(numBlockImporte == i) {
+                        Log.e(TAG, "DATAaaaa: " + elements.get(k).getText());
+                        ticket.setPunit(elements.get(k).getText());
+                        ticket.setImporte(elements.get(k+1).getText());
+                        numBlockImporte = 0;
+                    }*/
+                }
+            }
         }
-        if (elements.get(1).equals("CANT PRODUCTO")) {
-            Log.e(TAG, "CANT PRODUCTO: "+elements1.get(1).getText());
-            String[] data = elements1.get(1).getText().split(" ");
-            ticket.setLitros(Float.parseFloat(data[0]));
+
+        Log.e(TAG, "tickert: " + ticket.toString());
+    }
+
+    public void ticketKopla(List<Text.TextBlock> blocks) {
+        Log.e("INFORMACION", "ES UN TICKET DE KOPLA");
+        int numBlockImporte = -1;
+        for (int i = 0; i < blocks.size(); i++) {
+            Log.e(TAG, "BLOQUE: " + i);
+            List<Text.Line> lines = blocks.get(i).getLines();
+            for (int j = 0; j < lines.size(); j++) {
+                //Log.e(TAG, "LINEA: "+lines.get(j).getElements());
+                List<Text.Element> elements = lines.get(j).getElements();
+                String infoconsult = getAllLine(elements);
+                if ((i < 2) && j == 0) {
+                    //Se obtiene el proveedor
+                    if (infoconsult.contains("S.A") || infoconsult.contains("C.V")) {
+                        ticket.setProvedor(infoconsult);
+                    }
+                    if (infoconsult.contains("KOPLA") || infoconsult.contains("kopla")) {
+                        ticket.setRfc("RFCKOPLA");
+                    }
+                }
+                for (int k = 0; k < elements.size(); k++) {
+                    Log.e(TAG, "DATA: " + elements.get(k).getText());
+                    if (matches_date(elements.get(k).getText())) {
+                        ticket.setFecha(elements.get(k).getText());
+                    }
+
+                    if (matches_hour(elements.get(k).getText())) {
+                        ticket.setHora(elements.get(k).getText());
+                    }
+
+                    if(elements.get(k).getText().toUpperCase().contains("MAGNA") || elements.get(k).getText().toUpperCase().contains("PREMIUM") || elements.get(k).getText().toUpperCase().contains("DIESEL")) {
+                        ticket.setCombustible(elements.get(k).getText());
+                        ticket.setLitros(elements.get(k-1).getText());
+                        ticket.setTypeCombustible(check_type_comb(elements.get(k).getText()));
+                        numBlockImporte = i +1;
+                    }
+
+                    if(numBlockImporte == i) {
+                        Log.e(TAG, "DATAaaaa: " + elements.get(k).getText());
+                        ticket.setPunit(elements.get(k).getText());
+                        ticket.setImporte(elements.get(k+1).getText());
+                        numBlockImporte = 0;
+                    }
+                }
+            }
         }
-        if (elements.get(2).equals("P.UNI")) {
-            Log.e(TAG, "P.UNI: "+elements1.get(2).getText());
-            ticket.setPunit(Float.parseFloat(elements1.get(2).getText()));
-        }
-        if (elements.get(3).equals("IMPORTE")) {
-            Log.e(TAG, "P.UNI: "+elements1.get(3).getText());
-            ticket.setImporte(Float.parseFloat(elements1.get(3).getText()));
-        }*/
+        Log.e(TAG, "tickert: " + ticket.toString());
     }
 
     private static Pattern DATE_PATTERN = Pattern.compile(
@@ -325,29 +473,31 @@ public class MainActivity extends AppCompatActivity {
 
     private static Pattern HOUR_PATTERN = Pattern.compile(
             "^\\d{2}:\\d{2}:\\d{2}$");
+    private static Pattern HOUR_PATTERN2 = Pattern.compile(
+            "^\\d{2}:\\d{2}$");
 
     public boolean matches_date(String date) {
-        return DATE_PATTERN.matcher(date).matches() || DATE_PATTERN_2.matcher(date).matches() || DATE_PATTERN_3.matcher(date).matches() ;
+        return DATE_PATTERN.matcher(date).matches() || DATE_PATTERN_2.matcher(date).matches() || DATE_PATTERN_3.matcher(date).matches();
     }
 
     public boolean matches_hour(String date) {
-        return HOUR_PATTERN.matcher(date).matches();
+        return HOUR_PATTERN.matcher(date).matches() || HOUR_PATTERN2.matcher(date).matches();
     }
 
-    public int check_type_comb(String combustible){
+    public int check_type_comb(String combustible) {
         int result = 0;
-        switch (combustible.toUpperCase()){
+        switch (combustible.toUpperCase()) {
             case "MAGNA":
-                result =  1;
-            break;
+                result = 1;
+                break;
             case "PREMIUN":
-                result =  2;
-            break;
+                result = 2;
+                break;
             case "DIESEL":
-                result =  3;
-            break;
+                result = 3;
+                break;
             default:
-                result =  0;
+                result = 0;
         }
         return result;
     }
@@ -360,12 +510,12 @@ public class MainActivity extends AppCompatActivity {
         return String.valueOf(result);
     }
 
-    public String getElementAfterElement(List<Text.Element> elements, List<String> search){
+    public String getElementAfterElement(List<Text.Element> elements, List<String> search) {
         for (int k = 0; k < elements.size(); k++) {
-            for (int i = 0 ; i < search.size() ; i++) {
-                if(elements.get(k).getText().contains(search.get(i))) {
-                    if((k+1) < elements.size()) {
-                        return elements.get(k+1).getText();
+            for (int i = 0; i < search.size(); i++) {
+                if (elements.get(k).getText().contains(search.get(i))) {
+                    if ((k + 1) < elements.size()) {
+                        return elements.get(k + 1).getText();
                     }
                 }
             }
@@ -408,7 +558,6 @@ public class MainActivity extends AppCompatActivity {
         return mImageMaxHeight;
     }
 
-
     private void checkExternalStoragePermission() {
 
         if (ContextCompat.checkSelfPermission(this,
@@ -424,7 +573,8 @@ public class MainActivity extends AppCompatActivity {
                         new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
                         225);
             }
-        }if (ContextCompat.checkSelfPermission(this,
+        }
+        if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
             Log.e(TAG, "Permission not granted CAMERA.");
@@ -444,7 +594,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         Bitmap bitmap;
-        if(resultCode == RESULT_OK && requestCode == PICK_IMAGE){
+        if (resultCode == RESULT_OK && requestCode == PICK_IMAGE) {
             photoURI = data.getData();
             try {
                 bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), photoURI);
@@ -504,7 +654,7 @@ public class MainActivity extends AppCompatActivity {
 
             ExifInterface exif = new ExifInterface(path.getPath());
             int rotation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
-            Log.e(TAG, "ROTACION: "+rotation);
+            Log.e(TAG, "ROTACION: " + rotation);
             String[] projection = {MediaStore.Images.ImageColumns.ORIENTATION};
 
             Cursor cursor = context.getContentResolver().query(path, projection, null, null, null);
@@ -549,12 +699,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    File image;
+
     private File createImageFile() throws IOException {
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        File image = File.createTempFile(
+        image = File.createTempFile(
                 imageFileName,  /* prefix */
                 ".jpg",         /* suffix */
                 storageDir      /* directory */
@@ -564,9 +716,51 @@ public class MainActivity extends AppCompatActivity {
         return image;
     }
 
-    private void openGallery(){
+    private void openGallery() {
         Intent gallery = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI);
         startActivityForResult(gallery, PICK_IMAGE);
     }
+
+    Disposable disposable = null;
+
+   /* public void sendPhoto(File image) {
+
+
+        HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY);
+        OkHttpClient.Builder builder = new OkHttpClient.Builder().addInterceptor(loggingInterceptor);
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("http://192.168.1.114/Pruebas2/php/")
+                .addCallAdapterFactory(RxJava3CallAdapterFactory.create())
+                .client(builder.build())
+                .build();
+
+        ApiService service = retrofit.create(ApiService.class);
+
+
+        Observable<String> resp = service.uploadPhoto("MANUEL", "1234", "24/03/21","14:25:45"*//*, image*//*);
+        resp.subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<String>() {
+                    @Override
+                    public void onSubscribe(@io.reactivex.rxjava3.annotations.NonNull Disposable d) {
+                        disposable = d;
+                    }
+
+                    @Override
+                    public void onNext(@io.reactivex.rxjava3.annotations.NonNull String usuario) {
+
+                    }
+
+                    @Override
+                    public void onError(@io.reactivex.rxjava3.annotations.NonNull Throwable e) {
+
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        disposable.dispose();
+                    }
+                });
+    }*/
 }
 
