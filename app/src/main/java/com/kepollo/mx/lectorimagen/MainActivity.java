@@ -29,6 +29,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.Base64;
 import android.util.Log;
 import android.util.Pair;
 import android.util.SparseIntArray;
@@ -49,6 +50,7 @@ import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -600,6 +602,7 @@ public class MainActivity extends AppCompatActivity {
                 bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), photoURI);
                 mImageView.setImageBitmap(bitmap);
                 mSelectedImage = bitmap;
+                uploadPhotoAtServer(bitmap);
                 runTextRecognition();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -639,6 +642,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 */
 
+                uploadPhotoAtServer(bitmap);
                 runTextRecognition();
 
             } catch (FileNotFoundException e) {
@@ -647,6 +651,45 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         }
+    }
+
+    private void uploadPhotoAtServer(Bitmap bitmap) {
+        HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY);
+        OkHttpClient.Builder builder = new OkHttpClient.Builder().addInterceptor(loggingInterceptor);
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("C:/xampper/htdocs/GUARDARFOTOS/")
+                .addCallAdapterFactory(RxJava3CallAdapterFactory.create())
+                .client(builder.build())
+                .build();
+
+        ApiService service = retrofit.create(ApiService.class);
+        String picture = convertBitmapAtString(bitmap);
+
+        Observable<String> resp = service.uploadPhotoBase64("MANUEL", "1234", "24/03/21","14:25:45", picture);
+                resp.subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(new Observer<String>() {
+                            @Override
+                            public void onSubscribe(@io.reactivex.rxjava3.annotations.NonNull Disposable d) {
+                                disposable = d;
+                            }
+
+                            @Override
+                            public void onNext(@io.reactivex.rxjava3.annotations.NonNull String usuario) {
+                                Log.e(TAG,"TODO EN ORDEN SE SUBIO LA FOTO");
+                            }
+
+                            @Override
+                            public void onError(@io.reactivex.rxjava3.annotations.NonNull Throwable e) {
+                                Log.e(TAG,"HUEBO UN ERROP");
+                            }
+
+                            @Override
+                            public void onComplete() {
+                                disposable.dispose();
+                                Log.e(TAG,"SE COMPLETO LA SUBIDA DE LA INFORMACION");
+                            }
+                        });
     }
 
     public float getImageRotation(Uri path, Context context) {
@@ -722,6 +765,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     Disposable disposable = null;
+
+    public String convertBitmapAtString(Bitmap image){
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        image.compress(Bitmap.CompressFormat.JPEG, 100, baos); //bm = Bitmap
+        byte[] b = baos.toByteArray();
+        String encodedImage = Base64.encodeToString(b, Base64.DEFAULT);//imagen codificada
+        return encodedImage;
+    }
 
    /* public void sendPhoto(File image) {
 

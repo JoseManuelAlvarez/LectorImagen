@@ -17,4 +17,16 @@ public interface ApiService {
                                    @Field("tipo") String hora/*,
                                    @("imagen") File imagen*/);
 
+    /**
+     * Probando Enviar imagen en base64
+     *
+     */
+
+    @POST("uploadPhoto.php")
+    Observable<String> uploadPhotoBase64(@Field("token") String user,
+                                   @Field("fecha") String pass,
+                                   @Field("hora") String fecha,
+                                   @Field("tipo") String hora,
+                                   @Field("imagen") String imagen);
+
 }
