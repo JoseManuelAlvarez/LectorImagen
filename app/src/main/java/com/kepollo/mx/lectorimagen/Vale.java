@@ -18,6 +18,7 @@ public class Vale {
     private String kilometrajeactual;
     private String rendimientoEsperado;
     private String rendimientoReal;
+    private String asiganado;
 
     public Vale() {
     }
@@ -148,5 +149,36 @@ public class Vale {
 
     public void setRendimientoReal(String rendimientoReal) {
         this.rendimientoReal = rendimientoReal;
+    }
+
+    public String getAsiganado() {
+        return asiganado;
+    }
+
+    public void setAsiganado(String asiganado) {
+        this.asiganado = asiganado;
+    }
+
+    @Override
+    public String toString() {
+        return "Vale{" +
+                "folio='" + folio + '\'' +
+                ", proveedor='" + proveedor + '\'' +
+                ", departamento='" + departamento + '\'' +
+                ", area='" + area + '\'' +
+                ", subarea='" + subarea + '\'' +
+                ", fecha='" + fecha + '\'' +
+                ", litros='" + litros + '\'' +
+                ", cantidadLetra='" + cantidadLetra + '\'' +
+                ", noEconomico='" + noEconomico + '\'' +
+                ", placas='" + placas + '\'' +
+                ", kilometrajeActual='" + kilometrajeActual + '\'' +
+                ", kilometrajeAnterior='" + kilometrajeAnterior + '\'' +
+                ", kilometrajeRecorrido='" + kilometrajeRecorrido + '\'' +
+                ", kilometrajeactual='" + kilometrajeactual + '\'' +
+                ", rendimientoEsperado='" + rendimientoEsperado + '\'' +
+                ", rendimientoReal='" + rendimientoReal + '\'' +
+                ", asiganado='" + asiganado + '\'' +
+                '}';
     }
 }

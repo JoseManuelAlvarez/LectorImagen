@@ -89,6 +89,7 @@ public class MainActivity extends AppCompatActivity {
     private String mCurrentPhotoPath;
     private Uri photoURI;
     private Ticket ticket;
+    private Vale vale;
 
 
     private static final int PICK_IMAGE = 100;
@@ -178,6 +179,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         ticket = new Ticket();
+        vale = new Vale();
     }
 
     private void runTextRecognition() {
@@ -234,50 +236,85 @@ public class MainActivity extends AppCompatActivity {
         searchTransaccion.add("Transaccion");
         searchTransaccion.add("Referencia");
 
-        int numBlockImporte = -1;
+        int numBlockVale = -1;
         for (int i = 0; i < blocks.size(); i++) {
-            //Log.e(TAG, "BLOQUE: " + i);
+            Log.e(TAG, "BLOQUE: " + i);
             List<Text.Line> lines = blocks.get(i).getLines();
             for (int j = 0; j < lines.size(); j++) {
                 //Log.e(TAG, "LINEA: "+lines.get(j).getElements());
                 List<Text.Element> elements = lines.get(j).getElements();
                 String infoconsult = getAllLine(elements).toUpperCase();
-                //Log.e(TAG, "elemento: "+infoconsult);
-                if (infoconsult.contains("CUATRO CAMINOS") || infoconsult.contains("CUATROCAMINOS") || infoconsult.contains("CAMINOS")) {
-                    ticket.setRfc("4caminos");
-                    ticketCuatroCaminos(blocks);
-                }
-                if ((i < 2) && j == 0) {
-                    //Se obtiene el proveedor
-                    if (infoconsult.contains("S.A") || infoconsult.contains("C.V")) {
-                        ticket.setProvedor(infoconsult);
-                    }
-                    if (infoconsult.contains("KOPLA") || infoconsult.contains("kopla")) {
-                        ticket.setRfc("RFCKOPLA");
-                        ticketKopla(blocks);
-                        break;
-                    }
-
-                    if (infoconsult.contains("SUPER SERVICIOS DE COMBUSTIBLE HUACUZ") || infoconsult.contains("SUPER SERVICIOS")
-                        || infoconsult.contains("COMBUSTIBLE HUACUZ") || infoconsult.contains("HUACUZ") || infoconsult.contains("GASOLINERA DE TACAMBARO")
-                            ||  infoconsult.contains("TACAMBARO")) {
-                        ticket.setRfc("RFCSUPERSERVICIOS");
-                        ticketSuperServicios(blocks);
-                        break;
-                    }
-                }
-                if (infoconsult.contains("RFC") || infoconsult.contains("R.F.C")) {
-                    if (ticket.getRfc().equals("0")) {
-                        ticket.setRfc(getElementAfterElement(elements, searchrfc));
-                    }
-                }
-                if (infoconsult.contains("TRANSACCION NO.") || infoconsult.contains("TRANSACCION") || infoconsult.contains("Transaccion") || infoconsult.contains("Referencia")) {
-                    ticket.setRfc(getElementAfterElement(elements, searchTransaccion));
+                if(infoconsult.toUpperCase().contains("VALE DE COMBUSTIBLE A:") || infoconsult.toUpperCase().contains("VALE DE COMBUSTIBLE")) {
+                    numBlockVale = i;
                 }
 
-                /*for (int k = 0; k < elements.size(); k++) {
+                if( numBlockVale == (i + 1)) {
+                    String asignado = getAllLine(lines.get(j+1).getElements()).toUpperCase();
+                    if(asignado.contains("DEPARTAMENTO")) {
+                        //No tiene para quien es el vale
+
+                    } else {
+                      //Si tiene para quien es
+                      vale.setAsiganado(asignado);
+                    }
+                }
+                /**
+                 *
+                 * Esta opcion es especial para los vales
+                 *
+                 */
+
+                for (int k = 0; k < elements.size(); k++) {
                     Log.e(TAG, "DATA: " + elements.get(k).getText());
-                    *//*if (matches_date(elements.get(k).getText())) {
+
+                    if (elements.get(k).getText().toUpperCase().contains("FOLIO")) {
+                        vale.setFolio(elements.get(k+1).getText());
+                    }
+
+                }
+
+                /**
+                 *
+                 * Esta seccion es para los tickets
+                 *
+                 */
+                //Log.e(TAG, "elemento: "+infoconsult);
+                                   /* if (infoconsult.contains("CUATRO CAMINOS") || infoconsult.contains("CUATROCAMINOS") || infoconsult.contains("CAMINOS")) {
+                                        ticket.setRfc("4caminos");
+                                        ticketCuatroCaminos(blocks);
+                                    }
+                                    if ((i < 2) && j == 0) {
+                                        //Se obtiene el proveedor
+                                        if (infoconsult.contains("S.A") || infoconsult.contains("C.V")) {
+                                            ticket.setProvedor(infoconsult);
+                                        }
+                                        if (infoconsult.contains("KOPLA") || infoconsult.contains("kopla")) {
+                                            ticket.setRfc("RFCKOPLA");
+                                            ticketKopla(blocks);
+                                            break;
+                                        }
+
+                                        if (infoconsult.contains("SUPER SERVICIOS DE COMBUSTIBLE HUACUZ") || infoconsult.contains("SUPER SERVICIOS")
+                                            || infoconsult.contains("COMBUSTIBLE HUACUZ") || infoconsult.contains("HUACUZ") || infoconsult.contains("GASOLINERA DE TACAMBARO")
+                                                ||  infoconsult.contains("TACAMBARO")) {
+                                            ticket.setRfc("RFCSUPERSERVICIOS");
+                                            ticketSuperServicios(blocks);
+                                            break;
+                                        }
+                                    }
+                                    if (infoconsult.contains("RFC") || infoconsult.contains("R.F.C")) {
+                                        if (ticket.getRfc().equals("0")) {
+                                            ticket.setRfc(getElementAfterElement(elements, searchrfc));
+                                        }
+                                    }
+                                    if (infoconsult.contains("TRANSACCION NO.") || infoconsult.contains("TRANSACCION") || infoconsult.contains("Transaccion") || infoconsult.contains("Referencia")) {
+                                        ticket.setRfc(getElementAfterElement(elements, searchTransaccion));
+                                    }*/
+
+                //for (int k = 0; k < elements.size(); k++) {
+                    //Log.e(TAG, "DATA: " + elements.get(k).getText());
+
+                   /* if (matches_date(elements.get(k).getText())) {
                         ticket.setFecha(elements.get(k).getText());
                     }
 
@@ -297,10 +334,12 @@ public class MainActivity extends AppCompatActivity {
                         ticket.setPunit(elements.get(k).getText());
                         ticket.setImporte(elements.get(k+1).getText());
                         numBlockImporte = 0;
-                    }*//*
-                }*/
+                    }*/
+                //}
             }
         }
+
+        Log.e(TAG, vale.toString());
     }
 
     private void ticketSuperServicios(List<Text.TextBlock> blocks) {
